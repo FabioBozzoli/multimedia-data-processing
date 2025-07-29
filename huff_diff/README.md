@@ -1,7 +1,3 @@
-Of course, here is a description for your README.md file, written in English and without using bold formatting, for the two new programs.
-
----
-
 # C++ Huffman Coding and Image Compression
 
 This repository contains two C++ programs that demonstrate data compression techniques. The first program, `prova.cpp`, is a general-purpose implementation of the Huffman coding algorithm. The second, `huffdiff.cpp`, applies Huffman coding along with a differential encoding scheme to compress and decompress images in the PAM (Portable Arbitrary Map) format.
