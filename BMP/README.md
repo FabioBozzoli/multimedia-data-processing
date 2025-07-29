@@ -1,71 +1,57 @@
-# C++ Image Encoding/Decoding with Rotational Base85 Conversion
+# C++ BMP to PAM Image Converters
 
-This repository contains a C++ program that implements a custom image encoding and decoding scheme. This scheme combines Base85 conversion with a rotational mapping to transform image pixel data, primarily for Portable Pixmap (PPM) images.
+This repository contains C++ programs designed to convert various types of BMP (Bitmap) image files into the PAM (Portable Arbitrary Map) format. The conversion process involves reading BMP header information, handling color tables (for paletted BMPs), extracting pixel data, and then writing the image data in the PAM format.
 
 ## Overview
 
-The program takes a PPM image, converts its raw pixel data into a Base85 string, and then applies a rotational shift to this string. The inverse process is performed for decoding, reconstructing the original image. This method can be used for obfuscation, compact representation, or as a building block for more complex image processing pipelines.
+The BMP format has several variants depending on the bit-depth and compression. This collection of converters addresses different common BMP types, providing a flexible solution for transforming them into the PAM format, which is a simpler, extensible image format often used in image processing pipelines.
 
-## Features
+## Common Features
 
--   **Base85 Conversion:**
-    -   `from_decimal_to_z85`: Converts a 32-bit unsigned integer (representing 4 bytes of pixel data) into a 5-character Base85 string. It uses a custom symbol set of 85 printable ASCII characters.
-    -   `from_z85_to_decimal`: Converts a 5-character Base85 string back into a 32-bit unsigned integer.
--   **Rotational Mapping:**
-    -   `key_value`: A utility function to get the integer index of a character within the custom 85-character symbol set.
-    -   `rotation`: Applies a rotational shift to a given text string. This function can perform both forward (encoding) and backward (decoding) rotations. The shift amount depends on a rotation parameter `N` and the character's position within the text.
--   **PPM File Handling:** The program reads and writes PPM (Portable Pixmap) files in their binary (`P6`) format. It specifically expects the `P6` magic number for input and outputs a `P6` header.
+Across all provided converters, you will find the following shared elements:
 
-## Encoding Process (`encode` function)
+-   `mat` Structure: A custom structure to represent the image data. It typically stores `rows_`, `cols_`, and a `std::vector` of `std::array<uint8_t, 3>` (for RGB pixel data). It includes methods for setting dimensions, accessing pixels by row/column or linear index, and adding individual pixels.
+-   `read_header` Function: Reads the initial part of the BMP file to extract crucial information such as:
+    -   Magic number (`0x4D42` for "BM").
+    -   Image width and height.
+    -   The starting offset of the pixel data within the file (`starting_point`).
+    -   For paletted BMPs, the number of colors in the color table (`num_colors`).
+-   `write_pam` Function: Writes the processed image data into a PAM file. The PAM header is consistent across all converters, specifying `P7` (for RGB), `WIDTH`, `HEIGHT`, `DEPTH 3`, `MAXVAL 255`, `TUPLTYPE RGB`, and `ENDHDR`. The pixel data is written row by row, from bottom to top (typical for BMPs, which store pixels inverted vertically).
 
-1.  **Read Header:** Reads the input PPM file's header to determine its width and height.
-2.  **Raw Data to Base85:** Reads 4 bytes of pixel data at a time from the input file, treats them as a 32-bit integer, and converts this integer to a 5-character Base85 string using `from_decimal_to_z85`. These Base85 strings are concatenated into a single string.
-3.  **Apply Rotation:** The concatenated Base85 string undergoes a rotational transformation using the `rotation` function (in forward direction) with a specified rotation parameter `N`.
-4.  **Write Output:** The encoded and rotated string, prefixed with the image width and height (e.g., `width,height,`), is written to the output file.
+## Specific Converters
 
-## Decoding Process (`decode` function)
+This repository includes programs tailored for different BMP bit-depths:
 
-1.  **Read Header:** Reads the width and height from the comma-separated header of the encoded input file.
-2.  **Apply Inverse Rotation:** Reads the entire rotated Base85 string from the input file. This string is then subjected to the inverse rotational transformation using the `rotation` function (in backward direction) with the same rotation parameter `N` used during encoding.
-3.  **Base85 to Raw Data:** The derotated Base85 string is processed in 5-character chunks. Each chunk is converted back into a 32-bit unsigned integer using `from_z85_to_decimal`.
-4.  **Write PPM:** The 32-bit integer is then broken down into 4 individual bytes, which are written as raw pixel data to the output PPM file, prefixed with a `P6` header and image dimensions.
+### 1. `main.cpp` (Possibly 4-bit BMP)
 
-## Program Execution (`main` function)
+This converter appears to handle BMP files that use a color table where each pixel is represented by 4 bits.
 
-The `main` function handles command-line arguments to select between encoding and decoding operations:
+-   `read_header`: Determines `num_colors` (if 0, defaults to `pow(2, 4)`, implying a 4-bit color depth).
+-   `read_color_table`: Reads a color palette of `num_colors` entries, where each entry is 4 bytes (B, G, R, reserved).
+-   `read_pixels`: Reads pixel data where each byte contains two 4-bit pixel indices. It then uses the `color_table` to map these indices to RGB values and adds them to the `mat` structure. It also handles row padding.
 
--   It expects exactly four command-line arguments:
-    1.  An operation flag (`c` for encode, `d` for decode).
-    2.  The rotation parameter `N` (an integer).
-    3.  The path to the input file.
-    4.  The path to the output file.
--   It parses the `N` parameter as an integer.
--   It calls either the `encode` or `decode` function based on the operation flag.
+### 2. `bmp08.cpp` (8-bit BMP)
+
+This converter is designed for 8-bit paletted BMP files.
+
+-   `read_header`: Determines `num_colors` (if 0, defaults to `pow(2, 8)`, implying an 8-bit color depth).
+-   `read_color_table`: Similar to `main.cpp`, it reads the color palette based on `num_colors`.
+-   `read_pixels`: Reads pixel data where each byte directly represents an index into the `color_table`. It then retrieves the corresponding RGB values and adds them to the `mat` structure. It also handles row padding.
+
+### 3. `bmp24.cpp` (24-bit BMP)
+
+This converter handles 24-bit BMP files, which do not use a color table, as pixel data is directly stored in RGB format.
+
+-   `read_header`: Does not read `num_colors` as 24-bit BMPs do not have a color table. The header parsing is adjusted accordingly.
+-   `read_pixels`: Directly reads 3 bytes (B, G, R) for each pixel from the input stream. It then reorders them to R, G, B before adding them to the `mat` structure. It also handles row padding.
 
 ## Usage
 
-To compile and run the program:
+To compile and run any of these converters:
 
 ```bash
-g++ z85rot.cpp -o image_converter
+g++ <source_file>.cpp -o bmp_to_pam_converter
+./bmp_to_pam_converter input.bmp output.pam
 ```
 
-### For Encoding:
-
-```bash
-./image_converter c <N_value> <input_ppm_file> <output_encoded_file>
-```
-
--   `<N_value>`: An integer value for the rotational shift (e.g., `10`).
--   `<input_ppm_file>`: Path to your input PPM (P6) image file.
--   `<output_encoded_file>`: Desired path for the encoded output file.
-
-### For Decoding:
-
-```bash
-./image_converter d <N_value> <input_encoded_file> <output_decoded_ppm_file>
-```
-
--   `<N_value>`: Must be the *same* integer value used during encoding.
--   `<input_encoded_file>`: Path to the encoded file created by the `encode` operation.
--   `<output_decoded_ppm_file>`: Desired path for the reconstructed PPM (P6) image file.
+Replace `<source_file>.cpp` with `main.cpp`, `bmp08.cpp`, or `bmp24.cpp` depending on the type of BMP file you intend to convert. `input.bmp` should be your source BMP file, and `output.pam` will be the generated PAM file.
