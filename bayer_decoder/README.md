@@ -1,4 +1,4 @@
-C++ Image Processing Project
+## C++ Image Processing Project
 
 This repository contains a C++ program for image processing, focusing on reading, manipulating, and writing files in PGM and PPM formats. The project implements the demosaicing (color interpolation) of a grayscale image to which a Bayer filter has been applied.
 
