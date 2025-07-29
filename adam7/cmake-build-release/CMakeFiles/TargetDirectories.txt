@@ -1,0 +1,3 @@
+/Users/fabiobozzoli/Documents/Unimore/A.a. 2024-2025/multimedia_data_processing/adam7/cmake-build-release/CMakeFiles/adam7.dir
+/Users/fabiobozzoli/Documents/Unimore/A.a. 2024-2025/multimedia_data_processing/adam7/cmake-build-release/CMakeFiles/edit_cache.dir
+/Users/fabiobozzoli/Documents/Unimore/A.a. 2024-2025/multimedia_data_processing/adam7/cmake-build-release/CMakeFiles/rebuild_cache.dir
